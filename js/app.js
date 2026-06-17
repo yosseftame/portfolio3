@@ -1,4 +1,4 @@
-const API_URL = "https://portfolio-3-production.up.railway.app/api/projects";
+const API_URL = "https://portfolio-3-production.up.railway.app/api";
 
 // Load projects on page load
 document.addEventListener("DOMContentLoaded", loadProjects);
