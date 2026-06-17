@@ -1,4 +1,4 @@
-const API_URL = "https://portfolio-3-production.up.railway.app/api/projects";
+const API_URL = "https://portfolio-3-production.up.railway.app/api";
 
 let currentToken = localStorage.getItem("token");
 let currentUsername = localStorage.getItem("username");
