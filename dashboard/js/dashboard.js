@@ -2,6 +2,7 @@ const API_URL = "https://portfolio-3-production.up.railway.app/api";
 
 let currentToken = localStorage.getItem("token");
 let currentUsername = localStorage.getItem("username");
+let editingProjectId = null;
 
 // DOM Elements
 const loginForm = document.getElementById("login-form");
@@ -9,6 +10,9 @@ const registerForm = document.getElementById("register-form");
 const dashboard = document.getElementById("dashboard");
 const logoutBtn = document.getElementById("logout-btn");
 const usernameDisplay = document.getElementById("username-display");
+const projectForm = document.getElementById("project-form");
+const projectFormHeading = document.querySelector("#add-project-section h2");
+const projectSubmitBtn = projectForm.querySelector("button[type='submit']");
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
@@ -40,9 +44,7 @@ function setupEventListeners() {
   logoutBtn.addEventListener("click", handleLogout);
 
   // Project form
-  document
-    .getElementById("project-form")
-    .addEventListener("submit", handleAddProject);
+  projectForm.addEventListener("submit", handleProjectFormSubmit);
 
   // Navigation
   document.querySelectorAll(".nav-link").forEach((link) => {
@@ -211,7 +213,7 @@ async function loadProjects() {
   }
 }
 
-async function handleAddProject(e) {
+async function handleProjectFormSubmit(e) {
   e.preventDefault();
 
   const projectData = {
@@ -229,8 +231,13 @@ async function handleAddProject(e) {
   };
 
   try {
-    const response = await fetch(`${API_URL}/projects`, {
-      method: "POST",
+    const url = editingProjectId
+      ? `${API_URL}/projects/${editingProjectId}`
+      : `${API_URL}/projects`;
+    const method = editingProjectId ? "PUT" : "POST";
+
+    const response = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${currentToken}`,
@@ -238,31 +245,24 @@ async function handleAddProject(e) {
       body: JSON.stringify(projectData),
     });
 
-    let data;
-    try {
-      data = await response.json();
-    } catch (err) {
-      const text = await response.text();
-      data = {
-        success: false,
-        message: "Invalid JSON response from server",
-        raw: text,
-      };
-    }
-
-    console.log("Create project response:", response.status, data);
+    const data = await response.json();
 
     if (response.ok && data.success) {
-      alert("تمت إضافة المشروع بنجاح");
-      document.getElementById("project-form").reset();
+      alert(
+        editingProjectId ? "تم تحديث المشروع بنجاح" : "تمت إضافة المشروع بنجاح",
+      );
+      projectForm.reset();
+      editingProjectId = null;
+      projectFormHeading.textContent = "إضافة مشروع جديد";
+      projectSubmitBtn.textContent = "إضافة المشروع";
       switchSection("projects");
       loadProjects();
     } else {
-      alert(data.message || data.raw || "فشل إضافة المشروع");
+      alert(data.message || "فشل حفظ المشروع");
     }
   } catch (error) {
     console.error("Error:", error);
-    alert("حدث خطأ أثناء إضافة المشروع");
+    alert("حدث خطأ أثناء حفظ المشروع");
   }
 }
 
@@ -291,6 +291,38 @@ async function deleteProject(id) {
   }
 }
 
-function editProject(id) {
-  alert("سيتم تطوير ميزة التعديل قريباً");
+async function editProject(id) {
+  try {
+    const response = await fetch(`${API_URL}/projects/${id}`, {
+      headers: {
+        Authorization: `Bearer ${currentToken}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(data.message || "لم أتمكن من جلب بيانات المشروع");
+      return;
+    }
+
+    const project = data.data;
+    document.getElementById("title").value = project.title || "";
+    document.getElementById("description").value = project.description || "";
+    document.getElementById("image").value = project.image || "";
+    document.getElementById("link").value = project.link || "";
+    document.getElementById("github").value = project.github || "";
+    document.getElementById("technologies").value = (
+      project.technologies || []
+    ).join(", ");
+    document.getElementById("featured").checked = project.featured || false;
+
+    editingProjectId = id;
+    projectFormHeading.textContent = "تعديل المشروع";
+    projectSubmitBtn.textContent = "تحديث المشروع";
+    switchSection("add-project");
+  } catch (error) {
+    console.error("Error:", error);
+    alert("حدث خطأ أثناء تحميل بيانات المشروع");
+  }
 }
